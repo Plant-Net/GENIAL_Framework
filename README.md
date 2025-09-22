@@ -109,15 +109,15 @@ From the raw transcriptomics table:
 `DEA/DEA.R` to perform the DEA and get the needed Wald stats. Then `DEA/Merge_matrix.ipynb` to get the merged data used after.
 
 GRN and Activities:
-`GRN.ipynb` to retrieve the necessary networks (GRN and KEGG) from TomTom and check them.
-`TF_pathway_activity.ipynb` to perform TF and pathway activites.
+`GRN.ipynb` to retrieve the necessary networks (GRN) from TomTom and check them.
+`TF_pathway_activity_mercator.ipynb` to perform TF and pathway activites.
 
 TDA: 
 `TDA/Prepare_data.ipynb` to format the data for TDA.
 `TDA/mapper.py` to obtain the TDA network colored for all pathogens and the four configuration.
-Finally, `TDA/Hub_TDA.ipynb` to detect hub in each of the configuration and `TDA/Pathway_acts_hubs.ipynb` to check for pathways activity in the sub-GRN of the hubs. 
+Finally, `TDA/Hub_TDA.ipynb` to detect hub in each of the configuration and `TDA/Pathway_TDA_and_link_TF_Pathway.ipynb` to check for TF - Pathway links in the sub-GRN of the hubs. 
 
-For the plots, most of them are obtain with `Plot/Plot_clean.ipynb` or directly within `TF_pathway_acitivity.ipynb`
+For the plots, most of them are obtain with `Plot/Plot_clean.ipynb` or directly within dedicated notebook.
 
 ## Reference :writing_hand: 
 You can find all the detailed and explained results [here](https://doi.org/10.1101/2025.04.09.647963)
