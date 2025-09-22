@@ -90,7 +90,7 @@ def export_network_and_description():
     description,network, pathways = query_graph(HIVE)
     description.to_csv('Data/Network_GRN_HIVE_INFO.txt', sep='\t', index=False)
     network.to_csv('Data/Network_GRN_HIVE.txt', sep='\t', index=False)
-    pathways.to_csv('Data/KEGG_background.txt', sep='\t', index=False)
+    # pathways.to_csv('Data/Mercator_background.txt', sep='\t', index=False)
 
 if __name__ == "__main__":
     export_network_and_description()
