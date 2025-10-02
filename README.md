@@ -89,7 +89,7 @@ From the multi-transcriptomics bulk RNA-seq data, we applied [HIVE](https://doi.
 From the list, we retrieved the GRN using **TomTom** neo4j database. We further curate the GRN to have a balance between confidence and sparsity.
 
 We used decoupleR's ULM to infer TF activities and retrieve the significant ones. We consider the previous GRN and t-stat output of DESeq2 perform on each infection independently.
-The analysis resulted in 43 significant regulatory TFs out of the 71 present in the GRN. We then used decoupleR's MLM to infer pathways activities from KEGG pathways (also available using TomTom).
+The analysis resulted in 43 significant regulatory TFs out of the 71 present in the GRN. We then used decoupleR's MLM to infer pathways activities from Mercator pathways (also available using TomTom).
 
 Topological Data Analysis was performed on the same GRN with corresponding TF activities. We first applied the mapper algorithm to find a simpler representation of the GRN, and we further used the ToMATo algorithm to find groups on the mapper graph obtained before.
 
