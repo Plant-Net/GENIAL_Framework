@@ -44,19 +44,6 @@ def randomize_prior_igraph(prior_df, n_rewire=10_000, seed=None):
     # print("Randomized prior columns:", rand_prior.columns)
     return rand_prior
 
-# def is_iqr_outlier(real, null_vals):
-#     q1 = np.percentile(null_vals, 25)
-#     q3 = np.percentile(null_vals, 75)
-#     iqr = q3 - q1
-#     return real < (q1 - 1.5 * iqr) or real > (q3 + 1.5 * iqr)
-
-# def is_mad_outlier(real, null_vals):
-#     median = np.median(null_vals)
-#     mad = median_abs_deviation(null_vals, scale='normal')
-#     if mad == 0:
-#         return False
-#     mod_z = abs(real - median) / mad
-#     return mod_z >= 3.5
 
 def compute_summary_statistics(real_scores, null_df):
     """
@@ -69,7 +56,7 @@ def compute_summary_statistics(real_scores, null_df):
         null_vals = null_df.loc[null_df['source'] == tf, 'score']
         
         if len(null_vals) == 0:
-            continue  # skip TFs not in null (rare)
+            continue  
 
         mu, sigma = null_vals.mean(), null_vals.std()
         z = (real_val - mu) / sigma if sigma > 0 else np.nan
@@ -84,8 +71,6 @@ def compute_summary_statistics(real_scores, null_df):
             'z_score': z,
             'empirical_p_value': p_emp,
             'significant': significant
-            # 'iqr_outlier': is_iqr_outlier(real_val, null_vals),
-            # 'mad_outlier': is_mad_outlier(real_val, null_vals)
         })
 
     return pd.DataFrame(tf_stats)
@@ -95,7 +80,7 @@ def flatten_activity_df(df, cond_name=None, iteration=None):
     Ensure correct orientation and convert to long format.
     """
     if not isinstance(df, pd.DataFrame):
-        raise ValueError("Expected DataFrame output from decoupler method.")
+        raise ValueError("Wrong format.")
 
     # Transpose if TFs are columns instead of index
     if df.columns.str.startswith(('Solyc')).any():  # heuristic
@@ -122,8 +107,8 @@ def process_condition_from_merged(cond_name, expr_df, prior_df, n_random=100, se
     
     # Extract t-statistics for current condition
     cond_expr = expr_df[[cond_name]]
-    cond_expr = cond_expr.fillna(0)  # Fill NaNs with 0
-    cond_expr = cond_expr.T  # shape: 1 × genes
+    cond_expr = cond_expr.fillna(0)  
+    cond_expr = cond_expr.T 
     # cond_expr.to_csv(f"./results/debug/cond_expr_{cond_name}.csv", index=False)
     
     # Real TF activity
@@ -200,7 +185,7 @@ if __name__ == "__main__":
     matrix = expr_df.T.fillna(0)
 
     # REAL TF ACTIVITY
-    print("🔍 Running real TF activity...")
+    print("Computing real TF activity...")
     real_raw, _ = dc.run_ulm(
         mat=matrix,
         net=prior_df,
@@ -227,7 +212,7 @@ if __name__ == "__main__":
         df_flat['iteration'] = i
         return df_flat
 
-    print(f"🔁 Running {n_random} random shuffles with multiprocessing...")
+    print(f"Running {n_random} random shuffles...")
     with mp.Pool(processes=mp.cpu_count()) as pool:
         null_results = pool.map(run_random_iteration, range(n_random))
 
@@ -235,7 +220,7 @@ if __name__ == "__main__":
     null_df.to_csv("./results/null_distribution_all_conditions.csv", index=False)
 
     # SUMMARY STATISTICS
-    print("📊 Computing summary statistics...")
+    print("Writing summary statistics...")
     all_summary = []
     for cond in matrix.index:
         real_c = real_scores[real_scores['condition'] == cond]
@@ -246,5 +231,3 @@ if __name__ == "__main__":
 
     summary_df = pd.concat(all_summary)
     summary_df.to_csv("./results/tf_summary_all_conditions.csv", index=False)
-
-    print("✅ Benchmark complete.")
