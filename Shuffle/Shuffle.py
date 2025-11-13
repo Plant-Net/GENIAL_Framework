@@ -3,18 +3,17 @@ import numpy as np
 import decoupler as dc
 import os
 import multiprocessing as mp
-from functools import partial
 import igraph as ig
+import random
 from scipy.stats import median_abs_deviation
 
 
-def randomize_prior_igraph(prior_df, n_rewire=10_000, seed=None):
+def randomize_prior_igraph(prior_df, n_rewire=10_000, seed=42):
     """
     Degree-preserving randomization using igraph.
     Returns a randomized prior with the same in/out degrees.
     """
-    if seed is not None:
-        np.random.seed(seed)
+    random.seed(seed)
     
     # Map nodes to integers
     tf_set = prior_df['source'].unique()
@@ -61,7 +60,7 @@ def compute_summary_statistics(real_scores, null_df):
         mu, sigma = null_vals.mean(), null_vals.std()
         z = (real_val - mu) / sigma if sigma > 0 else np.nan
         p_emp = (np.sum(np.abs(null_vals - mu) >= np.abs(real_val - mu)) + 1) / (len(null_vals) + 1) #two-sided empirical p-value
-        significant = p_emp < 0.05
+        significant = p_emp <= 0.05
 
         tf_stats.append({
             'TF': tf,
@@ -70,7 +69,7 @@ def compute_summary_statistics(real_scores, null_df):
             'null_std': sigma,
             'z_score': z,
             'empirical_p_value': p_emp,
-            'significant': significant
+            'significant': significant,
         })
 
     return pd.DataFrame(tf_stats)
@@ -98,56 +97,6 @@ def flatten_activity_df(df, cond_name=None, iteration=None):
         df_flat['iteration'] = iteration
 
     return df_flat
-
-def process_condition_from_merged(cond_name, expr_df, prior_df, n_random=100, seed=42):
-    """
-    Process one condition from merged expression matrix (gene t-stats).
-    """
-    print(f"Processing: {cond_name}")
-    
-    # Extract t-statistics for current condition
-    cond_expr = expr_df[[cond_name]]
-    cond_expr = cond_expr.fillna(0)  
-    cond_expr = cond_expr.T 
-    # cond_expr.to_csv(f"./results/debug/cond_expr_{cond_name}.csv", index=False)
-    
-    # Real TF activity
-    real_scores_raw, _ = dc.run_ulm(
-    mat=cond_expr,
-    net=prior_df,
-    source='source',
-    target='target',
-    weight=None,
-    verbose=True
-    )
-    
-    real_scores = flatten_activity_df(real_scores_raw, cond_name=cond_name)
-
-    # Null distribution via randomized priors
-    null_scores = []
-    for i in range(n_random):
-        rand_prior = randomize_prior_igraph(prior_df, seed=seed + i)
-        rand_raw, _ = dc.run_ulm(
-        mat=cond_expr,
-        net=rand_prior,
-        source='source',
-        target='target',
-        weight=None,
-        verbose=False
-        )
-        rand_activity = flatten_activity_df(rand_raw, cond_name=cond_name, iteration=i)
-        null_scores.append(rand_activity)
-
-    null_df = pd.concat(null_scores)
-    # Compute summary statistics
-    z_df = compute_summary_statistics(real_scores, null_df)
-
-    # Save
-    z_df.to_csv(f"./results/tf_summary_{cond_name}.csv", index=False)
-    null_df.to_csv(f"./results/null_distribution_{cond_name}.csv", index=False)
-    real_scores.to_csv(f"./results/real_activity_{cond_name}.csv", index=False)
-
-    return cond_name
 
 def process_prior(prior_df):
     """
