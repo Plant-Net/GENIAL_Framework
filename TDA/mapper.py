@@ -15,6 +15,7 @@ import pickle as pck
 import networkx as nx
 import seaborn as sns
 from matplotlib.colors import Normalize
+import matplotlib.colors as mcolors
 import math
 from networkx.drawing.nx_agraph import graphviz_layout
 from gudhi.cover_complex import MapperComplex
@@ -35,7 +36,7 @@ class GraphCC(BaseEstimator, TransformerMixin):
         return self.labels_
 
 # Read GRN
-X = pd.read_csv('TDA/Data/Curated_gene_regulatory_network.tsv', sep='\t', header=0, index_col=None)
+X = pd.read_csv('./Data/Curated_gene_regulatory_network.tsv', sep='\t', header=0, index_col=None)
 X = np.array(X)
 # print(len(X), len(np.unique(X[:,0])), len(np.unique(X[:,1])))
 
@@ -48,8 +49,8 @@ X[:,0] = le.transform(X[:,0])
 X[:,1] = le.transform(X[:,1])
 
 # Read expression + stats
-F1 = pd.read_csv('TDA/Data/LogFC_genes_in_cGRN.tsv', sep='\t', header=0, index_col=None)
-F2 = pd.read_csv('TDA/Data/Stats_genes_in_cGRN.tsv', sep='\t', header=0, index_col=None)
+F1 = pd.read_csv('./Data/LogFC_genes_in_cGRN.tsv', sep='\t', header=0, index_col=None)
+F2 = pd.read_csv('./Data/Stats_genes_in_cGRN.tsv', sep='\t', header=0, index_col=None)
 # print(np.array(F1), np.array(F2))
 # print(F1.columns)
 
@@ -59,7 +60,7 @@ F2[:,0] = le.transform(F2[:,0])
 # print(F1,F2)
 
 # Read activity
-A = pd.read_csv('TDA/Data/Activity_TF_in_cGRN.tsv', sep='\t', header=0, index_col=None)
+A = pd.read_csv('./Data/Activity_TF_in_cGRN.tsv', sep='\t', header=0, index_col=None)
 pathogen_names = np.array(A.columns)
 A = np.array(A)
 A[:,0] = le.transform(A[:,0])
@@ -109,14 +110,36 @@ for i in range(n_tf):
 
 common_targets_tf_save = common_targets_tf
 
-# plt.figure(figsize=(12, 10))  # Adjust the figure size for better visibility
-# sns.heatmap(
-#     common_targets_tf_save,
-#     cmap="magma_r",  # Choose a colormap
-#     annot=False,      # Disable annotations for large arrays
-#     cbar=True,        # Show the colorbar
-#     cbar_kws={'label': 'Value'}
-# )
+gene_names = le.inverse_transform((le_tf.inverse_transform(np.arange(common_targets_tf_save.shape[0]))).astype(int))
+
+# Build sets of targets per TF (unique targets)
+sets = [set(trg) for trg in targets_tf]
+n_tf_calc = common_targets_tf_save.shape[0]
+
+# Jaccard index (symmetric): intersection / union
+jaccard = np.full((n_tf_calc, n_tf_calc), np.nan, dtype=float)
+for i in range(n_tf_calc):
+    for j in range(n_tf_calc):
+        A, B = sets[i], sets[j]
+        union_size = len(A | B)
+        if union_size > 0:
+            inter_size = len(A & B)
+            jaccard[i, j] = inter_size / union_size
+
+jaccard_df = pd.DataFrame(jaccard, index=gene_names, columns=gene_names)
+annot = jaccard_df.round(3).astype(object).astype(str)
+
+plt.figure(figsize=(50, 40))  # Adjust the figure size for better visibility
+sns.heatmap(
+    jaccard_df,
+    cmap="magma_r",
+    annot=annot,
+    fmt='',
+    cbar=True,
+    vmin=0,
+    vmax=1,
+    cbar_kws={'label': 'Jaccard index'}
+)
 
 
 common_targets_tf = np.where(common_targets_tf > 0, np.ones(common_targets_tf.shape), np.zeros(common_targets_tf.shape))
@@ -147,9 +170,29 @@ print(eigenvectors.shape)
 #plt.show()
 amin, amax = A_tf[:,1:].min(), A_tf[:,1:].max()
 
-A_tf_filtered = np.where(np.abs(A_tf) < 2, np.nan , A_tf)
-A_tf_filtered = A_tf_filtered.astype(float)
-A_tf_filtered[np.all(np.isnan(A_tf_filtered), axis=1)] = 0
+## Filter unsignificant TF for visualization of clusters
+info = pd.read_csv('../Results_hubs_activity_stats_shuffle_corrected.tsv', sep='\t')
+info = info[info['OLN'].isin(le.inverse_transform(A_tf[:,0].astype(int)))]
+info = info.loc[:, ['OLN', *info.loc[:, 'Pinfestans_acts':'Mincognita_14dpi_acts'].columns, 'Groups_corrected']]
+act_cols = [c for c in info.columns if c.endswith('_acts')]
+
+def mask_inactive(row):
+    group = row['Groups_corrected']
+    new_row = row.copy()
+    for col in act_cols:
+        cond_name = col.replace('_acts', '_pval')
+        if cond_name not in str(group):
+            new_row[col] = np.nan
+    return new_row
+
+info_filtered = info.apply(mask_inactive, axis=1)
+info_filtered['OLN'] = le.transform(info_filtered['OLN'])
+A_tf_filtered = info_filtered[['OLN']+act_cols].to_numpy()
+# (~np.isnan(A_tf_filtered[:,1:])).sum() ## correctly match the bool df from the shuffling
+
+# A_tf_filtered_old = np.where(np.abs(A_tf) < 2, np.nan , A_tf)
+# A_tf_filtered_old = A_tf_filtered_old.astype(float)
+# A_tf_filtered_old[np.all(np.isnan(A_tf_filtered_old), axis=1)] = 0
 
 # Compute Mapper
 #print(n_tf, n_targets_tf[:,None].shape, np.arange(n_tf)[:,None].shape)
@@ -165,7 +208,7 @@ mapper.fit(X=np.arange(n_tf)[:,None], filters=eigenvectors[:,0:2], colors=np.hst
 mapper_graph = mapper.get_networkx()
 
 # print([(v, le.inverse_transform(  [int(i) for i in le_tf.inverse_transform(mapper.node_info_[v]["indices"])]  )) for v in mapper_graph.nodes()])
-with open("TDA/mapper_nodes.txt", "w") as f:
+with open("./mapper_nodes.txt", "w") as f:
     result = [(v, le.inverse_transform([int(i) for i in le_tf.inverse_transform(mapper.node_info_[v]["indices"])])) for v in mapper_graph.nodes()]
     f.write(str(result))
 
@@ -194,12 +237,12 @@ for cond in range(1, A_tf_filtered.shape[1]):
                                                     [:,np.unique(np.concatenate([mapper.node_info_[e[0]]["indices"], mapper.node_info_[e[1]]["indices"]]))].sum()/100 for e in mapper_graph.edges()])
     # Plot colorscale
     plt.colorbar(pathcollection)
-    plt.savefig('TDA/Plot/mapper_filtered_' + str(cond) + '.svg', format='svg', dpi=300, bbox_inches='tight')   
+    plt.savefig('./Plot/mapper_filtered_' + str(cond) + '.svg', format='svg', dpi=300, bbox_inches='tight')   
 
 ### Plot Graph without coloring
 plt.figure()
 pos = nx.kamada_kawai_layout(mapper_graph)
-nx.draw(mapper_graph, pos=pos, with_labels=False,
+nx.draw(mapper_graph, pos=pos, with_labels=True,
                         node_size=[10*mapper.node_info_[v]["colors"][0] for v in mapper_graph.nodes()],
                         width=[  common_targets_tf[np.unique(np.concatenate([mapper.node_info_[e[0]]["indices"], mapper.node_info_[e[1]]["indices"]])),:]
                                                     [:,np.unique(np.concatenate([mapper.node_info_[e[0]]["indices"], mapper.node_info_[e[1]]["indices"]]))].sum()/100 for e in mapper_graph.edges()])
@@ -247,7 +290,7 @@ ax.spines['right'].set_visible(False)
 plt.plot(np.arange(-5.,5.,0.01), [activity_modes(x, a_bw) for x in np.arange(-5.,5.,0.01)])
 plt.xlabel('Old Filter (TF ULM Activity)')
 plt.ylabel('New Filter')
-plt.savefig('Plot/Filter_function_activity.svg', format='svg')
+plt.savefig('./Plot/Filter_function_activity.svg', format='svg')
 plt.show()
 
 plt.figure()
@@ -257,7 +300,7 @@ ax.spines['right'].set_visible(False)
 plt.plot(np.arange(0.,33.,0.1), [target_modes(x, t_bw) for x in np.arange(0.,33.,0.1)])
 plt.xlabel('Old Filter (edge thickness)')
 plt.ylabel('New Filter')
-plt.savefig('Plot/Filter_function_edge.svg', format='svg')
+plt.savefig('./Plot/Filter_function_edge.svg', format='svg')
 plt.show()
 
 clusters, clusters_nodes, clusters_nodes_ens = {}, {v: [] for v in mapper_graph.nodes()}, {v: [] for v in mapper_graph.nodes()}
@@ -364,12 +407,23 @@ n_clusters_ens = len(list_clusters)
 clusters_env_perm = {idx_clus: clus for idx_clus, clus in enumerate(list_clusters)}
 clusters_env_perm_inv = {clus: idx_clus for idx_clus, clus in enumerate(list_clusters)}
 
+cluster_to_color={
+    'specific_exclusive' : 'red',
+    'multiple_shared' : 'green',
+    'multiple_mildly_shared' : 'gold',
+    'multiple_exclusive' : 'royalblue',
+    'N/A_shared' : 'grey',
+    'N/A_mildly_shared' : 'grey',
+    'N/A_exclusive' : 'grey',
+}
+cmap = mcolors.ListedColormap([cluster_to_color[c] for c in list_clusters])
+
 plt.rcParams['svg.fonttype'] = 'none'
 fig, ax = plt.subplots()
 # One possible layout, use the one you prefer
 pos = nx.kamada_kawai_layout(mapper_graph)
 # Specify node colors
-cmap = plt.get_cmap('rainbow', n_clusters_ens)
+# cmap = plt.get_cmap('rainbow', n_clusters_ens)
 pathcollection = nx.draw_networkx_nodes(mapper_graph, pos, 
                                         node_color=[clusters_env_perm_inv[clusters_ens[v]] for v in mapper_graph.nodes()], 
                                         # node_size=[800 if clusters_ens[v].split('_')[0] != 'N/A' else 0 for v in mapper_graph.nodes()],
@@ -384,5 +438,5 @@ delta = (n_clusters_ens-1)/n_clusters_ens
 cbar = fig.colorbar(pathcollection, ticks=np.arange(delta/2, n_clusters_ens-1, delta))
 cbar.ax.set_yticklabels([clusters_env_perm[c] for c in range(n_clusters_ens)])
 
-plt.savefig('TDA/Plot/Ensembl_cluster_TDA.svg', format='svg')
+plt.savefig('./Plot/Ensembl_cluster_TDA.svg', format='svg')
 plt.show()
