@@ -4,4 +4,5 @@
 /TO_REMOVE
 Data/KEGG_background.txt
 Data/HIVE_tomatoraw_ly3_ls80_ep300_rank_gene_selection_138bins.txt
+Shuffle/results/
 .github/
