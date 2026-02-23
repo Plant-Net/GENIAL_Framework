@@ -246,6 +246,7 @@ nx.draw(mapper_graph, pos=pos, with_labels=True,
                         node_size=[10*mapper.node_info_[v]["colors"][0] for v in mapper_graph.nodes()],
                         width=[  common_targets_tf[np.unique(np.concatenate([mapper.node_info_[e[0]]["indices"], mapper.node_info_[e[1]]["indices"]])),:]
                                                     [:,np.unique(np.concatenate([mapper.node_info_[e[0]]["indices"], mapper.node_info_[e[1]]["indices"]]))].sum()/100 for e in mapper_graph.edges()])
+plt.savefig('./Plot/Mapper_TDA_blue.png', format='png', dpi=300, bbox_inches='tight')  
 
 
 ## Get the different configurations
