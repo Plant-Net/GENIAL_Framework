@@ -110,14 +110,17 @@ From the raw transcriptomics table:
 
 GRN and Activities:
 `GRN.ipynb` to retrieve the necessary networks (GRN) from TomTom and check them.
-`TF_pathway_activity_mercator.ipynb` to perform TF and pathway activites.
+`TF_pathway_activity_mercator.ipynb` to perform TF and pathway activites. 
+To correct the activity, in the folder `Shuffle` you will find `plot_shuffle.ipynb` to correct TF activities and `plot_shuffle_pathways` to correct pathway activities.
 
 TDA: 
-`TDA/Prepare_data.ipynb` to format the data for TDA.
+`TDA/Prepare_data.ipynb` to format the data for TDA. It will create all necessary matrices.
 `TDA/mapper.py` to obtain the TDA network colored for all pathogens and the four configuration.
-Finally, `TDA/Hub_TDA.ipynb` to detect hub in each of the configuration and `TDA/Pathway_TDA_and_link_TF_Pathway.ipynb` to check for TF - Pathway links in the sub-GRN of the hubs. 
+Finally, `TDA/Pathway_TDA_and_link_TF_Pathway.ipynb` to check for TF - Pathway links in the sub-GRN of the hubs. 
 
 For the plots, most of them are obtain with `Plot/Plot_clean.ipynb` or directly within dedicated notebook.
+
+For the supplementary table, with all informations for each TFs of the GRN (t-stats, activities, TDA group, TF Familly,...), you can create it after running the workflow with `Create_SUPP_table.ipynb`
 
 ## Reference :writing_hand: 
 You can find all the detailed and explained results [here](https://doi.org/10.1101/2025.04.09.647963)
