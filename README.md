@@ -124,5 +124,5 @@ For the supplementary table, with all informations for each TFs of the GRN (t-st
 ## Reference :writing_hand: 
 You can find all the detailed and explained results [here](https://doi.org/10.1101/2025.04.09.647963)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15624949.svg)](https://doi.org/10.5281/zenodo.15624949)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20322180.svg)](https://doi.org/10.5281/zenodo.20322180)
 
