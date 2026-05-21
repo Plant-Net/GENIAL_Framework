@@ -1,4 +1,4 @@
-# 🍅Tomato bulk RNA-seq GRN and TDA analysis
+# 🍅Tomato bulk RNA-seq and GENIAL framework
 
 ## Conditions :test_tube:
 The conditions represents tomato infected with 7 different conditions (*Meloidogyne incognita* 7 and 14 dpi, *Botrytis cinerea*, *Phytophthora infestans*, *Cladosporium fulvum*, and *Potato spindle tuber viroid* mild and severe strains). Representing a total of 83 samples across 7 infections.
@@ -88,12 +88,11 @@ The data are publicaly available throught their respective bioproject:
 From the multi-transcriptomics bulk RNA-seq data, we applied [HIVE](https://doi.org/10.1101/2024.03.04.583290). HIVE returned a list of genes available in the data folder but the following framework can be applied to any gene list.
 From the list, we retrieved the GRN using **TomTom** neo4j database. We further curate the GRN to have a balance between confidence and sparsity.
 
-We used decoupleR's ULM to infer TF activities and retrieve the significant ones. We consider the previous GRN and t-stat output of DESeq2 perform on each infection independently.
-The analysis resulted in 43 significant regulatory TFs out of the 71 present in the GRN. We then used decoupleR's MLM to infer pathways activities from Mercator pathways (also available using TomTom).
+We used decoupleR's ULM to infer TF activities and retrieve the significant ones. We consider the previous GRN and t-stat output of DESeq2 perform on each infection independently. We then used decoupleR's MLM to infer pathways activities from Mercator pathways (also available using TomTom).
 
 Topological Data Analysis was performed on the same GRN with corresponding TF activities. We first applied the mapper algorithm to find a simpler representation of the GRN, and we further used the ToMATo algorithm to find groups on the mapper graph obtained before.
 
-To find representatives nodes in each of the groups, we performed hub detection using degree and betweenness as metrics. We identified hubs as having the max value of either degree or betweenness in each group.
+To find representatives nodes in each of the groups, we selected TF having significant activities for multiple conditions.
 
 ## Installation ⚙️
 `conda create --name ENV_NAME python=3.12
@@ -102,7 +101,7 @@ pip install -r requirements.txt`
 You also need R requirements such as DESEq2, edgeR, ggplot2, ... present in the R scripts.
 
 
-## Run the framework :arrow_forward: 
+## Run the GENIAL framework :arrow_forward: 
 You need the HIVE selection present in Data/ or any other matrix
 
 From the raw transcriptomics table:
